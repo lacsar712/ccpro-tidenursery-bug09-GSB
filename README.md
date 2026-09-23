@@ -44,8 +44,8 @@ docker compose up --build
 1. **Auth**：JWT 登录（OAuth2 Password），`/api/auth/login`、`/api/auth/me`
 2. **Hatchery 育苗场**：`name`、`seawaterSource`、`notes`
 3. **Pond 育苗塘**：`hatcheryId`、`pondCode`、`species`、`volumeM3`、`status(stocked|dry|quarantine)`；同场 `pondCode` 唯一
-4. **WaterSample 水质样**：`pondId`、`sampledAt`、`tempC`、`salinityPpt`、`doMgL`、`ph`、`notes`；`doMgL > 0` 且 `ph ∈ [6,9]`，否则返回 **400**
-5. **FeedEvent 投喂**：`pondId`、`fedAt`、`feedType`、`amountKg`、`operatorName`
+4. **WaterSample 水质样**：`pondId`、`sampledAt`、`tempC`、`salinityPpt`、`doMgL`、`ph`、`notes`；四项指标均必填，`doMgL > 0` 且 `ph ∈ [6,9]`，否则返回 **400**（中文提示，不产生新行）
+5. **FeedEvent 投喂**：`pondId`、`fedAt`、`feedType`、`amountKg`、`operatorName`；`feedType` 非空且 `amountKg > 0` 必填，否则返回 **400**（中文提示，不产生新行）
 6. **Dashboard**：塘总数、quarantine 数、近 24h 采样数、近 7 日投喂总量 kg
 
 ## 前端页面

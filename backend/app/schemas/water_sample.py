@@ -7,13 +7,27 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class WaterSampleCreate(BaseModel):
     pond_id: int = Field(..., alias="pondId")
     sampled_at: datetime = Field(..., alias="sampledAt")
-    temp_c: Optional[float] = Field(None, alias="tempC")
-    salinity_ppt: Optional[float] = Field(None, alias="salinityPpt")
-    do_mg_l: Optional[float] = Field(None, alias="doMgL")
-    ph: Optional[float] = None
+    temp_c: float = Field(..., alias="tempC", allow_inf_nan=False)
+    salinity_ppt: float = Field(..., alias="salinityPpt", allow_inf_nan=False)
+    do_mg_l: float = Field(..., alias="doMgL", allow_inf_nan=False)
+    ph: float = Field(..., allow_inf_nan=False)
     notes: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("do_mg_l")
+    @classmethod
+    def do_must_be_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("溶解氧必须大于 0")
+        return v
+
+    @field_validator("ph")
+    @classmethod
+    def ph_must_be_in_range(cls, v: float) -> float:
+        if v < 6 or v > 9:
+            raise ValueError("pH 必须在 6 到 9 之间")
+        return v
 
 
 class WaterSampleOut(BaseModel):
@@ -22,8 +36,8 @@ class WaterSampleOut(BaseModel):
     id: int
     pond_id: int = Field(serialization_alias="pondId")
     sampled_at: datetime = Field(serialization_alias="sampledAt")
-    temp_c: float = Field(0.0, serialization_alias="tempC")
-    salinity_ppt: float = Field(0.0, serialization_alias="salinityPpt")
-    do_mg_l: float = Field(0.0, serialization_alias="doMgL")
-    ph: float = 0.0
+    temp_c: float = Field(serialization_alias="tempC")
+    salinity_ppt: float = Field(serialization_alias="salinityPpt")
+    do_mg_l: float = Field(serialization_alias="doMgL")
+    ph: float
     notes: Optional[str] = None

@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -44,12 +45,12 @@ def create_sample(
         notes=payload.notes,
     )
     db.add(item)
-    db.commit()  # commit before late checks
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="塘口不存在")
     db.refresh(item)
-    if item.do_mg_l is not None and item.do_mg_l <= 0:
-        raise HTTPException(status_code=400, detail="溶解氧必须大于 0")
-    if item.ph < 6 or item.ph > 9:
-        raise HTTPException(status_code=400, detail="pH 越界")
     return item
 
 

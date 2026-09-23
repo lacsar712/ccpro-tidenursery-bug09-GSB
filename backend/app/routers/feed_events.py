@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -37,15 +38,17 @@ def create_event(
     item = FeedEvent(
         pond_id=payload.pond_id,
         fed_at=payload.fed_at,
-        feed_type=payload.feed_type or "",
-        amount_kg=payload.amount_kg if payload.amount_kg is not None else 0.0,
+        feed_type=payload.feed_type,
+        amount_kg=payload.amount_kg,
         operator_name=payload.operator_name or "",
     )
     db.add(item)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="塘口不存在")
     db.refresh(item)
-    if not item.feed_type or item.amount_kg <= 0:
-        raise HTTPException(status_code=400, detail="投喂类型与千克无效")
     return item
 
 
