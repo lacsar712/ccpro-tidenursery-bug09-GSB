@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -31,21 +32,26 @@ def create_event(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
+    # 业务校验全部前置：类型非空、千克数 > 0 已由 schema 拦截。
     pond = db.query(Pond).filter(Pond.id == payload.pond_id).first()
     if not pond:
         raise HTTPException(status_code=400, detail="塘口不存在")
+
     item = FeedEvent(
         pond_id=payload.pond_id,
         fed_at=payload.fed_at,
-        feed_type=payload.feed_type or "",
-        amount_kg=payload.amount_kg if payload.amount_kg is not None else 0.0,
-        operator_name=payload.operator_name or "",
+        feed_type=payload.feed_type,
+        amount_kg=payload.amount_kg,
+        operator_name=payload.operator_name,
     )
     db.add(item)
-    db.commit()
+    try:
+        # 校验通过后才提交；提交失败整单回滚，不留脏行。
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="投喂记录保存失败，请检查数据")
     db.refresh(item)
-    if not item.feed_type or item.amount_kg <= 0:
-        raise HTTPException(status_code=400, detail="投喂类型与千克无效")
     return item
 
 
